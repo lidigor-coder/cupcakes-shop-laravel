@@ -1,21 +1,13 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-
-Route::get('/', function () {
-    return view('welcome');
-});
-
 use App\Http\Controllers\PageController;
 
-// Говорим: при запросе /contacts найди класс PageController и запусти в нем метод showContacts
-Route::get('/contacts', [PageController::class, 'showContacts']);
+// Главная страница кондитерской (наш макет кексов)
+Route::get('/', [PageController::class, 'showMainPage']);
 
-// Показ формы (GET-запрос)
-Route::get('/feedback', [PageController::class, 'showForm']);
-
-// Прием данных (POST-запрос)
-Route::post('/send', [PageController::class, 'handleForm']);
-
-// Маршрут для нашей админки в Laravel
+// Админка для просмотра заказов
 Route::get('/admin-panel', [PageController::class, 'showAdmin']);
+
+// Маршрут для отправки формы заказа (POST-запрос)
+Route::post('/send-order', [PageController::class, 'handleForm']);

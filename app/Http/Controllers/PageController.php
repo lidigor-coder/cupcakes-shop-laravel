@@ -2,56 +2,57 @@
 
 namespace App\Http\Controllers;
 
-// Обратите внимание: плагин больше не будет подчеркивать Request, 
-// так как мы используем его ниже в методе handleForm!
 use Illuminate\Http\Request;
-// --- ВОТ ЭТА СТРОЧКА ИСПРАВИТ ОШИБКУ И ПОДЧЕРКИВАНИЕ! ---
-use App\Models\LaravelMessage;
+// Подключаем нашу новую модель заказов кексов вместо старых сообщений!
+use App\Models\Order;
 
 class PageController extends Controller
 {
-    // 1. Старый метод для страницы контактов (оставляем его здесь)
-    public function showContacts()
+    /**
+     * 1. Метод показывает главную страницу кондитерской
+     */
+    public function showMainPage()
     {
-        $managerName = 'Игорь Глазков';
-        $managerEmail = 'lidigor63@gmail.com';
-        $currentYear = date('Y');
+        // Пока мы просто отдаем наш красивый HTML-макет кексов.
+        // Чуть позже мы научим этот метод забирать товары из базы данных!
+        return view('welcome');
+    }
 
-        return view('contacts', compact('managerName', 'managerEmail', 'currentYear'));
-    } // <-- Проверьте, чтобы эта скобка закрывала метод контактов!
-
-    // 2. Метод, который просто показывает нашу форму
-    public function showForm()
-    {
-        return view('feedback');
-    } // shadow-скобка закрывает метод показа формы
-
-    // 3. Метод, который принимает данные из формы
-    public function handleForm(Request $request)
-{
-    // 1. Забираем данные из полей формы
-    $name = $request->input('username');
-    $message = $request->input('user_message');
-
-    // 2. ВОТ ЭТА СТРОЧКА ЗАПИШЕТ ДАННЫЕ В БАЗУ MYSQL (XAMPP)!
-    // Метод create сам сделает SQL-запрос INSERT INTO laravel_messages...
-    LaravelMessage::create([
-        'username' => $name,
-        'user_message' => $message,
-    ]);
-
-    // 3. Делаем красивый редирект назад с зеленой плашкой
-    return back()->with('success', "Спасибо, $name! Ваше сообщение успешно сохранено в базу данных через Eloquent ORM!");
-}
-
-    // 4. Метод для показа админки в Laravel
+    /**
+     * 2. Метод показывает админку для владельца кондитерской
+     */
     public function showAdmin()
     {
-        // Магия Eloquent! Заменяет весь старый SQL-запрос SELECT * FROM...
-        // get() — выполняет запрос и превращает результат в удобную коллекцию (массив объектов)
-        $all_messages = LaravelMessage::orderBy('id', 'desc')->get();
+        // Заменяем старую модель LaravelMessage на новую модель Order!
+        // Вытаскиваем все заказы, самые свежие будут вверху таблицы
+        $all_orders = Order::orderBy('id', 'desc')->get();
 
-        // Передаем эти сообщения в будущий шаблон admin_panel.blade.php
-        return view('admin_panel', compact('all_messages'));
+        // Передаем заказы в наш обновленный шаблон админки
+        return view('admin_panel', compact('all_orders'));
     }
-} // <-- САМАЯ ПОСЛЕДНЯЯ СКОБКА: она закрывает весь класс PageController!
+
+    /**
+     * 3. Метод принимает и обрабатывает новый заказ кексов
+     */
+    public function handleForm(Request $request)
+    {
+        // --- ПЕРВАЯ ЛИНИЯ БИЗНЕС-ЛОГИКИ: ВАЛИДАЦИЯ ---
+        // Мы просим Laravel автоматически проверить входящие данные из формы.
+        // Если пользователь забудет указать телефон или введет слишком короткое имя,
+        // Laravel сам прервет код и вернет человека назад с ошибкой!
+        $validatedData = $request->validate([
+            'client_name'  => 'required|min:2|max:100', // Имя обязательно, от 2 символов
+            'client_phone' => 'required|min:7',         // Телефон обязателен
+            'cupcake_name' => 'required',               // Название кекса обязательно
+            'quantity'     => 'required|integer|min:1', // Количество — целое число, минимум 1 кекс
+        ]);
+
+        // --- ЗАПИСЬ НА СКЛАД MYSQL ---
+        // Магия Eloquent ORM: передаем проверенные данные ($validatedData) в метод create.
+        // Laravel сам выполнит безопасный SQL-запрос INSERT INTO orders...
+        Order::create($validatedData);
+
+        // Возвращаем покупателя обратно к макету кексов с зеленой плашкой успеха
+        return back()->with('success', '🎂 Заказ успешно принят! Наш кондитер уже разогревает духовку. Ждите звонка!');
+    }
+}
