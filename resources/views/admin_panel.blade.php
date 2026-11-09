@@ -211,8 +211,18 @@
                                             height="50" style="object-fit: cover; border-radius: 6px;"></td>
                                     <td><strong>{{ $cake->title }}</strong></td>
                                     <td>{{ $cake->price }} BYN</td>
-                                    <td>
-                                        <!-- Профессиональное удаление через форму POST + метод DELETE -->
+                                    <!-- Найдите место вывода кнопок действий в цикле кексов и замените на это: -->
+                                    <td style="display: flex; gap: 8px;">
+                                        <!-- Кнопка Редактировать (передает все данные кекса в JS через data-атрибуты) -->
+                                        <button type="button" class="btn"
+                                            style="background: #0ea5e9; padding: 6px 12px; font-size: 12px;"
+                                            onclick="openEditModal(this)" data-id="{{ $cake->id }}"
+                                            data-title="{{ $cake->title }}" data-price="{{ $cake->price }}"
+                                            data-description="{{ $cake->description }}">
+                                            Редактировать
+                                        </button>
+
+                                        <!-- Ваша существующая форма удаления (оставляем без изменений) -->
                                         <form action="{{ route('cupcakes.destroy', $cake->id) }}" method="POST"
                                             onsubmit="return confirm('Вы уверены, что хотите удалить этот кекс?')">
                                             @csrf
@@ -220,6 +230,7 @@
                                             <button type="submit" class="btn btn-danger">Удалить</button>
                                         </form>
                                     </td>
+
                                 </tr>
                             @endforeach
                         </tbody>
@@ -271,7 +282,84 @@
             document.getElementById(tabName).style.display = "block";
             evt.currentTarget.classList.add("active");
         }
+
+        // Функция открытия модального окна редактирования
+        function openEditModal(button) {
+            const id = button.getAttribute('data-id');
+            const title = button.getAttribute('data-title');
+            const price = button.getAttribute('data-price');
+            const description = button.getAttribute('data-description');
+
+            // Находим элементы в поп-апе и заполняем их текущими данными из базы
+            document.getElementById('edit-title').value = title;
+            document.getElementById('edit-price').value = price;
+            document.getElementById('edit-description').value = description;
+
+            // Профессионально формируем динамический URL для метода UPDATE (admin/cupcakes/{id})
+            const form = document.getElementById('edit-cupcake-form');
+            form.action = `/my-laravel-app/public/admin/cupcakes/${id}`;
+
+            // Показываем поп-ап
+            document.getElementById('edit-modal').style.display = 'flex';
+        }
+
+        // Функция закрытия модального окна
+        function closeEditModal() {
+            document.getElementById('edit-modal').style.display = 'none';
+        }
+
+        // Закрытие при клике на серую область вокруг формы
+        window.addEventListener('click', function(event) {
+            const modal = document.getElementById('edit-modal');
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
     </script>
+
+    <!-- МОДАЛЬНОЕ ОКНО РЕДАКТИРОВАНИЯ КЕКСА -->
+    <div id="edit-modal"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 9999; justify-content: center; align-items: center; backdrop-filter: blur(4px);">
+        <div
+            style="background: white; padding: 30px; border-radius: 12px; width: 100%; max-width: 500px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); position: relative;">
+
+            <button onclick="closeEditModal()"
+                style="position: absolute; top: 12px; right: 15px; background: none; border: none; font-size: 24px; cursor: pointer; color: #999;">&times;</button>
+
+            <h3 style="margin-top: 0; color: #2c3e50;">Редактировать кекс</h3>
+
+            <!-- Динамическая форма: Action будет подставляться через JS -->
+            <form id="edit-cupcake-form" action="" method="POST" enctype="multipart/form-data">
+                @csrf
+                <!-- Профессиональный шаг Laravel: подменяем метод POST на PUT -->
+                @method('PUT')
+
+                <div class="form-group">
+                    <label>Название кекса:</label>
+                    <input type="text" name="title" id="edit-title" required
+                        style="width: 100%; box-sizing: border-box;">
+                </div>
+                <div class="form-group" style="margin-top: 10px;">
+                    <label>Цена (BYN):</label>
+                    <input type="number" step="0.01" name="price" id="edit-price" required
+                        style="width: 100%; box-sizing: border-box;">
+                </div>
+                <div class="form-group" style="margin-top: 10px;">
+                    <label>Описание:</label>
+                    <textarea name="description" id="edit-description" rows="3" required
+                        style="width: 100%; box-sizing: border-box; font-family: sans-serif;"></textarea>
+                </div>
+                <div class="form-group" style="margin-top: 10px;">
+                    <label>Новое фото (необязательно):</label>
+                    <input type="file" name="image" accept="image/*">
+                </div>
+                <button type="submit" class="btn"
+                    style="background: #0ea5e9; width: 100%; margin-top: 15px; font-size: 16px; padding: 12px;">Сохранить
+                    изменения</button>
+            </form>
+        </div>
+    </div>
+
 
 </body>
 
